@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register - CollabDocs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded shadow-md w-96">
+    <h2 class="text-2xl font-bold mb-6 text-center">Register</h2>
+
+  <form id="registerForm" enctype="multipart/form-data" method="POST">
+  <input id="username" type="text" name="username" placeholder="Username" required class="border p-2 mb-4 w-full"/>
+  
+  <!-- ✅ Add this missing email field -->
+  <input id="email" type="email" name="email" placeholder="Email" required class="border p-2 mb-4 w-full"/>
+  
+  <input id="password" type="password" name="password" placeholder="Password" required class="border p-2 mb-4 w-full"/>
+  <input id="photo" type="file" name="photo" accept="image/*" class="border p-2 mb-4 w-full"/> <!-- optional photo -->
+  
+  <button type="submit" class="bg-blue-600 text-white p-2 w-full rounded">Register</button>
+</form>
+
+
+    <!-- Login Link -->
+    <p class="text-sm text-center mt-4">
+      Already have an account?
+      <a href="/login.html" class="text-blue-600 hover:underline">Login</a>
+    </p>
+  </div>
+
+  <!-- JavaScript for handling form submission -->
+  <script>
+    document.getElementById("registerForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);  // Collect form data including the file input
+
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert("Registration successful. You can now log in.");
+        window.location.href = "/login.html";  // Redirect to login page after successful registration
+      } else {
+        alert(result.error || "Registration failed.");  // Show an alert with the error message if registration fails
+      }
+    });
+  </script>
+</body>
+</html>

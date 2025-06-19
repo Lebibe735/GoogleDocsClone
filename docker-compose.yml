@@ -1,0 +1,29 @@
+services:
+  server:
+    container_name: docsclone-backend
+    build: ./server
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGO_URI=mongodb+srv://Lebibe:C3ypCA6h2TpaS9HC@cluster0.hvwesud.mongodb.net/ProjectY?retryWrites=true&w=majority&appName=Cluster0
+      - NODE_ENV=development
+    volumes:
+      - ./server:/app
+      - ./client:/client      
+      - /app/node_modules # për të mos e mbuluar node_modules nga volume
+    networks:
+      - collab-network
+
+  frontend:
+    container_name: docsclone-frontend
+    build: ./client
+    ports:
+      - "80:80"
+    volumes:
+      - ./client:/usr/share/nginx/html:ro
+    networks:
+      - collab-network
+
+networks:
+  collab-network:
+    driver: bridge

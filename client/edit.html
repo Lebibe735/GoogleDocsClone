@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CollabDocs - Edit Document</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f1f5f9;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header, .toolbar-container {
+      background-color: white;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    #doc-title {
+      width: 100%;
+      font-size: 2rem;
+      padding: 1rem;
+      border: none;
+      text-align: center;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .toolbar-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 1rem;
+      justify-content: center;
+    }
+    .toolbar-button {
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      background-color: #f1f5f9;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+    .toolbar-button:hover {
+      background-color: #e2e8f0;
+      border-color: #cbd5e1;
+    }
+    #editor {
+      flex-grow: 1;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      max-width: 794px;
+      min-height: 1123px;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+      font-size: 1.1rem;
+      line-height: 1.6;
+      outline: none;
+      overflow-y: auto;
+    }
+    .resizable-image.selected {
+      border: 2px solid #3b82f6;
+    }
+    /* Modal styles */
+    #share-modal {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0,0,0,0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #share-modal.show {
+      visibility: visible;
+      opacity: 1;
+    }
+    #share-modal > div {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      width: 22rem;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    #history-modal.hidden {
+      display: none;
+    }
+    #history-modal.show {
+      display: flex;
+    }
+    #history-modal {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 60;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #history-modal.show {
+      visibility: visible;
+      opacity: 1;
+    }
+    input[type="color"].toolbar-button {
+  padding: 0.25rem;
+  height: 2.5rem;
+  width: 2.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  background-color: transparent;
+  box-shadow: 0 0 0 1px #cbd5e1;
+}
+
+input[type="color"].toolbar-button:hover {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+  </style>
+</head>
+<body>
+  <input id="doc-title" type="text" placeholder="Enter document title" />
+
+  <header>
+    <div class="flex justify-between items-center px-6 py-3">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-file-alt text-blue-600 text-2xl"></i>
+        <span class="text-xl font-semibold text-gray-900">CollabDocs</span>
+      </div>
+      <button id="back-btn" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700">
+        <i class="fas fa-arrow-left mr-2"></i>Back
+      </button>
+    </div>
+  </header>
+
+  <div class="toolbar-container">
+    <button class="toolbar-button" onclick="execCmd('bold')" title="Bold"><i class="fas fa-bold"></i></button>
+    <button class="toolbar-button" onclick="execCmd('italic')" title="Italic"><i class="fas fa-italic"></i></button>
+    <button class="toolbar-button" onclick="execCmd('underline')" title="Underline"><i class="fas fa-underline"></i></button>
+    <button class="toolbar-button" onclick="execCmd('strikeThrough')" title="Strikethrough"><i class="fas fa-strikethrough"></i></button>
+    <button class="toolbar-button" onclick="execCmd('justifyLeft')" title="Align Left"><i class="fas fa-align-left"></i></button>
+    <button class="toolbar-button" onclick="execCmd('justifyCenter')" title="Align Center"><i class="fas fa-align-center"></i></button>
+    <button class="toolbar-button" onclick="execCmd('justifyRight')" title="Align Right"><i class="fas fa-align-right"></i></button>
+    <button class="toolbar-button" onclick="execCmd('justifyFull')" title="Justify"><i class="fas fa-align-justify"></i></button>
+    <select class="toolbar-button" onchange="execCmd('fontName', this.value)">
+      <option value="Arial">Arial</option>
+      <option value="Georgia">Georgia</option>
+      <option value="Courier New">Courier New</option>
+      <option value="Times New Roman">Times New Roman</option>
+    </select>
+    <select class="toolbar-button" onchange="execCmd('fontSize', this.value)">
+      <option value="1">10px</option>
+      <option value="2">13px</option>
+      <option value="3" selected>16px</option>
+      <option value="4">18px</option>
+      <option value="5">24px</option>
+      <option value="6">32px</option>
+    </select>
+    <input type="color" id="fore-color" class="toolbar-button" title="Text Color" />
+    <input type="color" id="back-color" class="toolbar-button" title="Highlight" />
+    <button class="toolbar-button" id="save-pdf" title="Download PDF"><i class="fas fa-file-pdf"></i></button>
+    <button class="toolbar-button" id="save-word" title="Download Word"><i class="fas fa-file-word"></i></button>
+    <button class="toolbar-button" id="insert-image-btn" title="Insert Image"><i class="fas fa-image"></i></button>
+    <input type="file" id="image-input" accept="image/*" style="display:none" />
+    <button class="toolbar-button" id="open-share-modal" title="Share"><i class="fas fa-share-alt"></i></button>
+    <button class="toolbar-button" id="show-history" title="Show History"><i class="fas fa-history"></i></button>
+  </div>
+
+  <!-- Share With Username Modal -->
+  <div id="share-modal">
+    <div>
+      <h2 class="text-lg font-semibold mb-4">Share Document</h2>
+      <input id="username-input" type="text" placeholder="Enter username" class="w-full p-2 border rounded mb-4" />
+      <button id="confirm-share" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full mb-2">Share</button>
+      <button id="close-modal" class="w-full text-center text-gray-600 hover:underline">Cancel</button>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div id="history-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+    <div class="bg-white p-4 rounded max-w-md w-full max-h-[80vh] overflow-y-auto">
+      <h2 class="text-lg font-semibold mb-4">Document History</h2>
+      <ul id="history-list" class="space-y-2"></ul>
+      <button id="close-history" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Close</button>
+    </div>
+  </div>
+
+  <main>
+    <div id="editor" contenteditable="true" spellcheck="true"></div>
+  </main>
+
+  <script>
+    const docId = new URLSearchParams(window.location.search).get("docId");
+    if (!docId) {
+      alert("Missing docId. Redirecting...");
+      window.location.href = "/";
+    }
+
+    const socket = io();
+    const editor = document.getElementById("editor");
+    const docTitle = document.getElementById("doc-title");
+    const imageInput = document.getElementById("image-input");
+    const shareModal = document.getElementById("share-modal");
+    const openShareBtn = document.getElementById("open-share-modal");
+    const closeModalBtn = document.getElementById("close-modal");
+    const confirmShareBtn = document.getElementById("confirm-share");
+    const usernameInput = document.getElementById("username-input");
+
+    // Execute document commands (bold, italic, etc)
+    function execCmd(cmd, val = null) {
+      editor.focus();
+      document.execCommand(cmd, false, val);
+    }
+
+    // Color pickers
+    document.getElementById("fore-color").oninput = function () {
+      execCmd("styleWithCSS");
+      execCmd("foreColor", this.value);
+    };
+
+    document.getElementById("back-color").oninput = function () {
+      execCmd("styleWithCSS");
+      execCmd("hiliteColor", this.value);
+    };
+
+    // Socket events - real time updates
+    docTitle.oninput = () => {
+      socket.emit("edit-title", { docId, title: docTitle.value });
+      saveTitleToServer(docTitle.value);
+    };
+
+    editor.oninput = () => {
+      socket.emit("edit-content", { docId, content: editor.innerHTML });
+      saveContentToServer(editor.innerHTML);
+    };
+
+    socket.on("update-title", (data) => {
+      if (data.title !== docTitle.value) docTitle.value = data.title;
+    });
+
+    socket.on("update-content", (data) => {
+      if (data.content !== editor.innerHTML) editor.innerHTML = data.content;
+    });
+
+    // Load document data from server
+    async function loadDoc() {
+      const token = localStorage.getItem("token");
+      try {
+        const res = await fetch(`/api/documents/${docId}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (res.ok) {
+          const doc = await res.json();
+          docTitle.value = doc.title;
+          editor.innerHTML = doc.content;
+        } else {
+          alert("Failed to load document.");
+        }
+      } catch (error) {
+        console.error("Error loading document:", error);
+        alert("Failed to load document.");
+      }
+    }
+
+    // Save title to server (PUT)
+    async function saveTitleToServer(title) {
+      const token = localStorage.getItem("token");
+      try {
+        await fetch(`/api/documents/${docId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title }),
+        });
+      } catch (error) {
+        console.error("Error saving title:", error);
+      }
+    }
+
+    // Save content to server (PUT)
+    async function saveContentToServer(content) {
+      const token = localStorage.getItem("token");
+      try {
+        await fetch(`/api/documents/${docId}/content`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ content }),
+        });
+      } catch (error) {
+        console.error("Error saving content:", error);
+      }
+    }
+
+    // Share document modal open/close
+    openShareBtn.onclick = () => {
+      shareModal.classList.add("show");
+    };
+    closeModalBtn.onclick = () => {
+      shareModal.classList.remove("show");
+      usernameInput.value = "";
+    };
+
+    // Confirm share action
+    confirmShareBtn.onclick = async () => {
+      const username = usernameInput.value.trim();
+      if (!username) return alert("Please enter a username");
+
+      const token = localStorage.getItem("token");
+      try {
+        const res = await fetch(`/api/documents/share`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ docId, username }),
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          alert("Document shared successfully with " + username);
+          shareModal.classList.remove("show");
+          usernameInput.value = "";
+        } else {
+          alert(result.error || "Failed to share document");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Something went wrong");
+      }
+    };
+
+    // Insert image functionality
+    document.getElementById("insert-image-btn").onclick = () => imageInput.click();
+
+    imageInput.onchange = () => {
+      const file = imageInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement("img");
+        img.src = e.target.result;
+        img.classList.add("resizable-image");
+        img.style.maxWidth = "100%";
+
+        const range = window.getSelection().getRangeAt(0);
+        range.insertNode(img);
+        range.setStartAfter(img);
+        range.collapse(true);
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      reader.readAsDataURL(file);
+    };
+
+    // Image selection styling
+    editor.addEventListener("click", (e) => {
+      if (e.target.tagName === "IMG") {
+        document.querySelectorAll(".resizable-image").forEach(img => img.classList.remove("selected"));
+        e.target.classList.add("selected");
+      } else {
+        document.querySelectorAll(".resizable-image").forEach(img => img.classList.remove("selected"));
+      }
+    });
+
+    // Save as PDF
+    document.getElementById("save-pdf").onclick = () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text(editor.innerText, 10, 10);
+      doc.save(`${docTitle.value || "document"}.pdf`);
+    };
+
+    // Save as Word
+    document.getElementById("save-word").onclick = () => {
+      const html = `<html><body>${editor.innerHTML}</body></html>`;
+      const blob = new Blob(['\ufeff', html], { type: "application/msword" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${docTitle.value || "document"}.doc`;
+      link.click();
+    };
+
+    // Back button goes to home
+    document.getElementById("back-btn").onclick = () => {
+      window.location.href = "/";
+    };
+
+    // Initial load and join socket room
+    loadDoc();
+    socket.emit("join", docId);
+
+    // History modal elements
+    const historyModal = document.getElementById("history-modal");
+    const historyList = document.getElementById("history-list");
+    const showHistoryBtn = document.getElementById("show-history");
+    const closeHistoryBtn = document.getElementById("close-history");
+
+    // Show history modal and fetch versions
+    showHistoryBtn.onclick = async () => {
+      historyList.innerHTML = "";
+      const token = localStorage.getItem("token");
+      try {
+        const res = await fetch(`/api/documents/${docId}/history`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("Failed to load history");
+        const history = await res.json();
+
+        history.forEach((version, idx) => {
+          const li = document.createElement("li");
+          const date = new Date(version.timestamp);
+          const username = version.modifiedBy ? version.modifiedBy.username : "Unknown";
+
+          li.innerHTML = `
+            <div class="flex flex-col p-2 border rounded cursor-pointer hover:bg-gray-100">
+              <div class="flex justify-between items-center mb-1">
+                <span class="text-sm text-gray-600">${date.toLocaleString()}</span>
+                <button data-index="${idx}" class="restore-version bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-700">Restore</button>
+              </div>
+              <div class="text-gray-800 text-sm"><strong>Modified by:</strong> ${username}</div>
+            </div>
+          `;
+
+          li.querySelector(".restore-version").onclick = () => {
+            if(confirm("Restore this version? This will overwrite current content.")) {
+              editor.innerHTML = version.content;
+              saveContentToServer(version.content);
+              socket.emit("edit-content", { docId, content: version.content });
+              historyModal.classList.remove("show");
+            }
+          };
+
+          historyList.appendChild(li);
+        });
+
+        historyModal.classList.add("show");
+      } catch (err) {
+        alert(err.message);
+      }
+    };
+
+    // Close history modal
+    closeHistoryBtn.onclick = () => {
+      historyModal.classList.remove("show");
+    };
+  </script>
+</body>
+</html>

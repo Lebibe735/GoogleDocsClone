@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>New Document</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <style>
+    .fade-in {
+      animation: fadeInUp 0.5s ease forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .btn-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-tr from-blue-100 via-white to-blue-200 min-h-screen flex items-center justify-center px-4">
+
+  <div class="bg-white p-10 rounded-3xl shadow-2xl max-w-xl w-full fade-in">
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-blue-600 mb-2">Create New Document</h1>
+      <p class="text-gray-600 text-lg">Start from a blank template</p>
+    </div>
+
+    <input
+      id="doc-title"
+      type="text"
+      placeholder="Enter document title"
+      class="w-full mb-6 px-5 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300"
+    />
+
+    <div class="flex justify-center">
+      <button
+        class="template-btn btn-hover bg-gradient-to-br from-sky-500 to-blue-600 text-white rounded-xl px-6 py-5 flex flex-col items-center shadow-md transition duration-300"
+        data-template="blank"
+      >
+        <i data-feather="file-text" class="w-8 h-8 mb-1"></i>
+        <span class="text-lg font-medium">Blank</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    feather.replace();
+
+    document.querySelector(".template-btn").addEventListener("click", async () => {
+      const title = document.getElementById("doc-title").value.trim();
+      const template = "blank";
+
+      if (!title) {
+        alert("Please enter a title.");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/documents/create", {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ title, template }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || "Unknown error");
+        }
+
+        const data = await response.json();
+        window.location.href = `/edit.html?docId=${data._id}`;
+      } catch (error) {
+        alert("Error: " + error.message);
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>

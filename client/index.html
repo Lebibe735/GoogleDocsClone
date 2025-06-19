@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CollabDocs - Real-time Collaboration</title>
+<script src="http://localhost:3001/socket.io/socket.io.js"></script>
+
+
+  <!-- External Libraries -->
+ 
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    crossorigin="anonymous" />
+
+  <!-- Custom Styles -->
+  <style>
+    #editor {
+      width: 100%;
+      height: 300px;
+    }
+    .main-section {
+      background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+    }
+    .fade-in {
+      animation: fadeIn 0.4s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body class="font-sans bg-blue-50 text-gray-800">
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg sticky top-0 z-50">
+    <div class="container mx-auto max-w-7xl flex justify-between items-center px-6 py-4">
+      <a href="/" class="text-3xl font-bold tracking-tight hover:opacity-90 transition duration-200">
+        <i class="fas fa-file-alt mr-2"></i>CollabDocs
+      </a>
+      <div id="user-controls" class="relative flex items-center gap-4 text-sm"></div>
+    </div>
+  </header>
+
+  <!-- Add Document Button -->
+  <section class="main-section py-16">
+    <div class="max-w-7xl mx-auto text-center fade-in">
+      <button id="new-document-btn"
+        class="text-white bg-sky-500 hover:bg-sky-600 border-4 border-white shadow-xl transition-all duration-300 text-6xl rounded-full p-6">
+        <i class="fas fa-plus"></i>
+      </button>
+      <p class="mt-3 text-md font-medium text-sky-800">Create New Document</p>
+    </div>
+  </section>
+
+  <!-- Document List -->
+  <main class="max-w-7xl mx-auto py-10 fade-in">
+    <h2 class="text-center text-2xl font-semibold text-blue-900 mb-6">Your Documents</h2>
+    <div id="document-list" class="flex flex-wrap gap-8 justify-center"></div>
+  </main>
+
+  <!-- Template Selection Modal -->
+  <div id="template-modal"
+    class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl fade-in">
+      <h2 class="text-xl font-bold text-gray-700 mb-4 text-center">Choose a Template</h2>
+      <input id="doc-title" type="text" placeholder="Document Title"
+        class="w-full border border-gray-300 rounded-md px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+      <div class="grid grid-cols-2 gap-4">
+        <button class="template-btn bg-gradient-to-r from-sky-500 to-blue-500 text-white font-medium rounded-md px-4 py-2 hover:opacity-90 transition" data-template="blank">Blank</button>
+        <button class="template-btn bg-gradient-to-r from-sky-500 to-blue-500 text-white font-medium rounded-md px-4 py-2 hover:opacity-90 transition" data-template="cv">CV</button>
+        <button class="template-btn bg-gradient-to-r from-sky-500 to-blue-500 text-white font-medium rounded-md px-4 py-2 hover:opacity-90 transition" data-template="cover-letter">Cover Letter</button>
+        <button class="template-btn bg-gradient-to-r from-sky-500 to-blue-500 text-white font-medium rounded-md px-4 py-2 hover:opacity-90 transition" data-template="questionnaire">Questionnaire</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+
+  <!-- Script -->
+  <script>
+    const userControls = document.getElementById("user-controls");
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (user) {
+      userControls.innerHTML = `
+        <div class="relative inline-block text-black">
+          <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
+            <img src="${user.photo || 'user.png'}" class="w-12 h-12 rounded-full border-4 border-white" alt="user" />
+            <span class="hidden sm:inline text-white">${user.username}</span>
+            <svg class="w-4 h-4 ml-1 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div id="user-dropdown"
+            class="absolute right-0 hidden bg-white border shadow-lg rounded mt-2 z-10 min-w-[150px]">
+            <a href="#" class="block px-4 py-2 hover:bg-blue-100" onclick="switchAccount()">Switch Account</a>
+            <a href="#" class="block px-4 py-2 hover:bg-blue-100" onclick="logout()">Logout</a>
+          </div>
+        </div>
+      `;
+
+      document.addEventListener("click", function (e) {
+        const button = document.getElementById("user-menu-button");
+        const dropdown = document.getElementById("user-dropdown");
+
+        if (button.contains(e.target)) {
+          dropdown.classList.toggle("hidden");
+        } else if (!dropdown.contains(e.target)) {
+          dropdown.classList.add("hidden");
+        }
+      });
+    } else {
+      userControls.innerHTML = `
+        <div class="flex space-x-4">
+          <a href="/login.html"
+            class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-6 rounded-full transition duration-300 shadow-md">Login</a>
+          <a href="/register.html"
+            class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-6 rounded-full transition duration-300 shadow-md">Register</a>
+        </div>
+      `;
+    }
+
+    function switchAccount() {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    }
+
+    function logout() {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    }
+
+    // Document creation
+    const newDocBtn = document.getElementById("new-document-btn");
+    const modal = document.getElementById("template-modal");
+    const titleInput = document.getElementById("doc-title");
+
+    newDocBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.location.href = "/new-document.html";
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        modal.classList.add("hidden");
+      }
+    });
+
+    // Template selection buttons
+    document.querySelectorAll(".template-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const template = btn.dataset.template;
+        const title = titleInput.value.trim();
+
+        if (!title) {
+          alert("Please enter a title.");
+          return;
+        }
+
+        // Proceed with creating a document using selected template
+        console.log("Selected template:", template, "Title:", title);
+        // Redirect or call API here
+      });
+    });
+
+    async function deleteDocument(id) {
+      if (confirm("Are you sure you want to delete this document?")) {
+        const response = await fetch(`/api/documents/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        if (response.ok) {
+          alert("Document deleted");
+          location.reload();
+        } else {
+          const data = await response.json();
+          alert("Error: " + data.error);
+        }
+      }
+    }
+     const socketIoScript = document.createElement('script');
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  socketIoScript.src = 'http://localhost:3001/socket.io/socket.io.js';
+} else {
+  // Kur e përdor me Docker Compose, hostname i backend është "docsclone-server"
+  socketIoScript.src = 'http://docsclone-server:3001/socket.io/socket.io.js';
+}
+document.head.appendChild(socketIoScript);
+
+  </script>
+
+  <!-- External JS -->
+  <script src="./script.js"></script>
+</body>
+
+</html>

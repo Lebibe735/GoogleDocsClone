@@ -79,7 +79,8 @@ app.get("/", (req, res) => {
   res.json({ 
     message: "CollabDocs Backend API", 
     status: "running",
-    version: "1.0.0"
+    version: "1.0.1",
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -115,6 +116,38 @@ app.post("/api/test-user", async (req, res) => {
     
     await testUser.save();
     res.json({ message: 'Test user created: username=testuser, password=test123' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET version of test user creation (for easier testing)
+app.get("/api/test-user", async (req, res) => {
+  try {
+    const bcrypt = require('bcryptjs');
+    const User = require('./models/User');
+    
+    // Check if test user already exists
+    const existingUser = await User.findOne({ username: 'testuser' });
+    if (existingUser) {
+      return res.json({ 
+        message: 'Test user already exists: username=testuser, password=test123',
+        exists: true 
+      });
+    }
+    
+    const hashedPassword = await bcrypt.hash('test123', 10);
+    const testUser = new User({
+      username: 'testuser',
+      password: hashedPassword,
+      photo: '/images/user.png'
+    });
+    
+    await testUser.save();
+    res.json({ 
+      message: 'Test user created: username=testuser, password=test123',
+      created: true 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

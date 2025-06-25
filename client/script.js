@@ -18,7 +18,16 @@ const token = localStorage.getItem("token");
 
 // Load on page ready
 document.addEventListener("DOMContentLoaded", () => {
-  fetchDocuments();
+  // Only fetch documents if user is logged in
+  if (token) {
+    fetchDocuments();
+  } else {
+    // If not logged in, show login message
+    if (documentList) {
+      documentList.innerHTML = "<p class='text-center text-gray-600'>Please log in to view your documents.</p>";
+    }
+  }
+  
   if (newDocumentBtn) newDocumentBtn.addEventListener("click", createNewDocument);
   if (shareBtn) shareBtn.addEventListener("click", shareDocument);
   if (backBtn) backBtn.addEventListener("click", () => window.location.href = "/");
@@ -33,13 +42,24 @@ async function fetchDocuments() {
         "Authorization": `Bearer ${token}`,
       },
     });
+    
+    if (res.status === 401) {
+      // Unauthorized - redirect to login
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login.html";
+      return;
+    }
+    
     if (!res.ok) throw new Error("Failed to fetch documents");
     const data = await res.json();
     allDocuments = data;
     renderDocumentList(data);
   } catch (err) {
     console.error("Error loading documents:", err);
-    alert("Failed to load documents");
+    if (documentList) {
+      documentList.innerHTML = "<p class='text-center text-red-600'>Failed to load documents. Please try again.</p>";
+    }
   }
 }
 
@@ -91,6 +111,12 @@ function openDocument(docId) {
 
 // Prompt and create
 async function createNewDocument() {
+  if (!token) {
+    alert("Please log in to create a document.");
+    window.location.href = "/login.html";
+    return;
+  }
+  
   const title = prompt("Enter document title:");
   if (!title) return;
   await createDocument(title);
@@ -108,6 +134,15 @@ async function createDocument(title) {
       body: JSON.stringify({ title }),
     });
 
+    if (res.status === 401) {
+      // Unauthorized - redirect to login
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      alert("Please log in to create a document.");
+      window.location.href = "/login.html";
+      return;
+    }
+
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || "Failed to create document");
@@ -117,7 +152,7 @@ async function createDocument(title) {
     window.location.href = `/edit.html?docId=${doc._id}`;
   } catch (err) {
     console.error("Create error:", err);
-    alert("Error creating document");
+    alert("Error creating document: " + err.message);
   }
 }
 

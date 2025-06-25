@@ -83,6 +83,43 @@ app.get("/", (req, res) => {
   });
 });
 
+// Public test endpoints
+app.get("/api/ping", (req, res) => {
+  res.json({ pong: true, timestamp: new Date().toISOString() });
+});
+
+app.get("/api/test", (req, res) => {
+  res.json({ 
+    message: "API is working!",
+    endpoints: {
+      login: "POST /api/auth/login",
+      register: "POST /api/auth/register", 
+      documents: "GET /api/documents (requires auth)",
+      create: "POST /api/documents/create (requires auth)"
+    }
+  });
+});
+
+// Test user creation (for debugging only)
+app.post("/api/test-user", async (req, res) => {
+  try {
+    const bcrypt = require('bcryptjs');
+    const User = require('./models/User');
+    
+    const hashedPassword = await bcrypt.hash('test123', 10);
+    const testUser = new User({
+      username: 'testuser',
+      password: hashedPassword,
+      photo: '/images/user.png'
+    });
+    
+    await testUser.save();
+    res.json({ message: 'Test user created: username=testuser, password=test123' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // SOCKET.IO Logic
 const lastCharTimestamps = {}; // Used for conflict resolution
 

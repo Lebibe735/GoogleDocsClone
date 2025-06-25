@@ -1,58 +1,45 @@
 const express = require("express");
 const http = require("http");
-const socketIo = require("socket.io");
+const { Server } = require("socket.io");
 const dotenv = require("dotenv");
 const path = require("path");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const multer = require("multer");
 
-// Configs & Models
+// Load environment variables
 dotenv.config();
+
+// DB Connection
 const connectDB = require("./config/db");
+connectDB(); // Contains retry logic
+
+// Mongo events
+mongoose.connection.on("connected", () => console.log("✅ MongoDB connected"));
+mongoose.connection.on("disconnected", () => console.warn("⚠️ MongoDB disconnected"));
+mongoose.connection.on("reconnected", () => console.info("🔄 MongoDB reconnected"));
+mongoose.connection.on("error", (err) => console.error("❌ MongoDB error:", err));
+
+// Models
 const Document = require("./models/Documents");
-const authController = require("./controllers/authController");
 
 // Routes & Middleware
-const docRoutes = require("./routes/docRoutes");
 const authRoutes = require("./routes/auth");
+const docRoutes = require("./routes/docRoutes");
+const authController = require("./controllers/authController");
 const authenticateUser = require("./middleware/auth");
 
+// Setup express & server
 const app = express();
 const server = http.createServer(app);
-
-// ✅ Configure CORS
-const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:3001", 
-    "https://*.vercel.app",
-    "https://*.onrender.com",
-    "https://*.railway.app",
-    "https://*.fly.dev"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
-};
-app.use(cors(corsOptions));
-
-// Connect to DB
-connectDB();
-
-mongoose.connection.on("connected", () => {
-  console.log("✅ MongoDB connected");
-});
-mongoose.connection.on("disconnected", () => {
-  console.warn("⚠️ MongoDB disconnected");
-});
-mongoose.connection.on("reconnected", () => {
-  console.info("🔄 MongoDB reconnected");
-});
-mongoose.connection.on("error", (err) => {
-  console.error("❌ MongoDB error:", err);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 });
 
-// File upload setup
+// Multer file upload config
 const upload = multer({ dest: "uploads/" });
 
 // Middlewares
@@ -61,24 +48,19 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 // Routes
+const router = express.Router();
+router.post("/login", authController.login);
 app.use("/api/auth", authRoutes);
 app.use("/api/documents", docRoutes);
 
-// ✅ Initialize Socket.IO
-const io = socketIo(server, {
-  cors: {
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001", 
-      "https://*.vercel.app",
-      "https://*.onrender.com",
-      "https://*.railway.app",
-      "https://*.fly.dev"
-    ],
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
+// Serve frontend
+app.use(express.static(path.join(__dirname, "client")));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "client/index.html"));
 });
+
+// SOCKET.IO Logic
+const lastCharTimestamps = {}; // Used for conflict resolution
 
 io.on("connection", (socket) => {
   console.log("🔌 New client connected");
@@ -106,6 +88,18 @@ io.on("connection", (socket) => {
     }
   });
 
+  
+  socket.on("charInput", ({ docId, character, position, timestamp }) => {
+    const key = `${docId}_${position}`;
+  // Vetëm nëse karakteri është më i fundit për atë pozicion
+    if (!lastCharTimestamps[key] || timestamp >= lastCharTimestamps[key]) {
+      lastCharTimestamps[key] = timestamp;
+      //Dërgo karakterin te përdoruesit e tjerë në të njëjtin dokument
+      socket.to(docId).emit("receiveChar", { character, position });
+    }
+  });
+
+  // 📝 Full content saving (e.g., autosave or manual)
   socket.on("edit-content", async ({ docId, content }) => {
     try {
       const document = await Document.findById(docId);
@@ -122,6 +116,7 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ✏️ Title edit
   socket.on("edit-title", async ({ docId, title }) => {
     try {
       const document = await Document.findById(docId);
@@ -135,6 +130,7 @@ io.on("connection", (socket) => {
     }
   });
 
+  // 🟢 Typing status (optional)
   socket.on("typing", (docId) => {
     socket.to(docId).emit("user-typing");
   });
@@ -144,7 +140,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// Global error handler
+// General error handling middleware
 app.use((err, req, res, next) => {
   console.error("❗ Unhandled error:", err);
   res.status(500).json({ error: "Something went wrong on the server." });

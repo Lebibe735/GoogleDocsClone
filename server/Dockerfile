@@ -2,14 +2,14 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files first for better caching
-COPY package*.json ./
+# Copy package files from server directory
+COPY server/package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy server files
-COPY . .
+COPY server/ .
 
 # Expose port 3001
 EXPOSE 3001

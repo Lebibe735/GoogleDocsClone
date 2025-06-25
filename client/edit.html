@@ -255,7 +255,7 @@ input[type="color"].toolbar-button:hover {
     async function loadDoc() {
       const token = localStorage.getItem("token");
       try {
-        const res = await fetch(`/api/documents/${docId}`, {
+        const res = await fetch(`https://googledocsclone-2.onrender.com/api/documents/${docId}`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -278,7 +278,7 @@ input[type="color"].toolbar-button:hover {
     async function saveTitleToServer(title) {
       const token = localStorage.getItem("token");
       try {
-        await fetch(`/api/documents/${docId}`, {
+        await fetch(`https://googledocsclone-2.onrender.com/api/documents/${docId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -295,7 +295,7 @@ input[type="color"].toolbar-button:hover {
     async function saveContentToServer(content) {
       const token = localStorage.getItem("token");
       try {
-        await fetch(`/api/documents/${docId}/content`, {
+        await fetch(`https://googledocsclone-2.onrender.com/api/documents/${docId}/content`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -324,7 +324,7 @@ input[type="color"].toolbar-button:hover {
 
       const token = localStorage.getItem("token");
       try {
-        const res = await fetch(`/api/documents/share`, {
+        const res = await fetch(`https://googledocsclone-2.onrender.com/api/documents/share`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -418,7 +418,7 @@ input[type="color"].toolbar-button:hover {
       historyList.innerHTML = "";
       const token = localStorage.getItem("token");
       try {
-        const res = await fetch(`/api/documents/${docId}/history`, {
+        const res = await fetch(`https://googledocsclone-2.onrender.com/api/documents/${docId}/history`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error("Failed to load history");

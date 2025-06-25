@@ -174,7 +174,7 @@
 
     async function deleteDocument(id) {
       if (confirm("Are you sure you want to delete this document?")) {
-        const response = await fetch(`/api/documents/${id}`, {
+        const response = await fetch(`https://googledocsclone-2.onrender.com/api/documents/${id}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,

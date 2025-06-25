@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: collabdocs-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      # Add your database connection string here
+      # - key: MONGODB_URI
+      #   value: your-mongodb-connection-string
+      # Add other environment variables as needed
+      # - key: JWT_SECRET
+      #   value: your-jwt-secret 

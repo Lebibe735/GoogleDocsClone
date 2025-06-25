@@ -1,8 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const socket = io();
+  const API_BASE = "https://googledocsclone-2.onrender.com";
+  const socket = io(API_BASE);
   const editor = document.getElementById("editor");
   const docTitle = document.getElementById("doc-title");
   const docId = new URLSearchParams(window.location.search).get("docId");
+  const token = localStorage.getItem("token");
 
   function execCmd(command, value = null) {
     editor.focus();
@@ -27,7 +29,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   async function loadDoc() {
-    const res = await fetch(`/api/documents/${docId}`);
+    const res = await fetch(`${API_BASE}/api/documents/${docId}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
     const data = await res.json();
     docTitle.value = data.title;
     editor.innerHTML = data.content;

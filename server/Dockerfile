@@ -1,20 +1,17 @@
-# Përdor imazhin zyrtar të Node.js nga Docker Hub
 FROM node:20
 
-# Vendos direktorinë e punës brenda container-it
 WORKDIR /app
 
-# Kopjo vetëm paketat për të cache-uar më mirë dependencat
+# Copy package files
 COPY package*.json ./
 
-# Instalo varësitë (do përdorë cache nëse nuk ka ndryshime)
+# Install dependencies
 RUN npm install
 
-# Kopjo pjesën tjetër të aplikacionit
+# Copy server files
 COPY . .
 
-# Eksporto portin që aplikacioni dëgjon (sigurohu që është 3001 në server.js)
+# Expose port 3001
 EXPOSE 3001
 
-# Komanda për nisjen e aplikacionit
 CMD ["node", "server.js"]

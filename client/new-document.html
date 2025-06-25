@@ -68,12 +68,14 @@
         const apiUrl = "https://googledocsclone-2.onrender.com/api/documents/create";
         console.log("🔍 Making API call to:", apiUrl);
         console.log("🔍 Request body:", { title, template });
+        console.log("🔍 Token:", localStorage.getItem('token') ? "Present" : "Missing");
         
         const response = await fetch(apiUrl, {
           method: "POST",
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Cache-Control': 'no-cache'
           },
           body: JSON.stringify({ title, template }),
         });

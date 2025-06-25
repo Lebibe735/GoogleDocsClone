@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Test Page</h1>
+    <button onclick="testBackend()">Test Backend</button>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testCreateDoc()">Test Create Document</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = "https://googledocsclone-2.onrender.com";
+        
+        async function testBackend() {
+            try {
+                const response = await fetch(`${API_BASE}/api/test`);
+                const data = await response.json();
+                document.getElementById('results').innerHTML = `<p>Backend Test: ${JSON.stringify(data)}</p>`;
+            } catch (error) {
+                document.getElementById('results').innerHTML = `<p>Backend Test Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'testuser', password: 'test123' })
+                });
+                const data = await response.json();
+                document.getElementById('results').innerHTML = `<p>Login Test: ${JSON.stringify(data)}</p>`;
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                }
+            } catch (error) {
+                document.getElementById('results').innerHTML = `<p>Login Test Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testCreateDoc() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                document.getElementById('results').innerHTML = '<p>No token found. Please login first.</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/documents/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ title: 'Test Document', template: 'blank' })
+                });
+                const data = await response.json();
+                document.getElementById('results').innerHTML = `<p>Create Doc Test: ${JSON.stringify(data)}</p>`;
+            } catch (error) {
+                document.getElementById('results').innerHTML = `<p>Create Doc Test Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -194,8 +194,7 @@
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
   socketIoScript.src = 'http://localhost:3001/socket.io/socket.io.js';
 } else {
-  // Kur e përdor me Docker Compose, hostname i backend është "docsclone-server"
-  socketIoScript.src = 'http://docsclone-server:3001/socket.io/socket.io.js';
+  socketIoScript.src = 'https://googledocsclone-2.onrender.com/socket.io/socket.io.js';
 }
 document.head.appendChild(socketIoScript);
 

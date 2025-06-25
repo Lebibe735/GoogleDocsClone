@@ -37,6 +37,7 @@ const corsOptions = {
   origin: [
     "http://localhost:3000",
     "http://localhost:3001", 
+    "https://google-docs-clone-orpin-ten.vercel.app",
     "https://*.vercel.app",
     "https://*.onrender.com",
     "https://*.railway.app",

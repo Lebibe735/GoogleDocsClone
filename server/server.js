@@ -53,10 +53,13 @@ router.post("/login", authController.login);
 app.use("/api/auth", authRoutes);
 app.use("/api/documents", docRoutes);
 
-// Serve frontend
-app.use(express.static(path.join(__dirname, "client")));
+// API status endpoint
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "client/index.html"));
+  res.json({ 
+    message: "CollabDocs Backend API", 
+    status: "running",
+    version: "1.0.0"
+  });
 });
 
 // SOCKET.IO Logic

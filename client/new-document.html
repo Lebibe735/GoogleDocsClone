@@ -55,6 +55,10 @@
   <script>
     feather.replace();
 
+    // Add cache-busting version
+    const VERSION = "v1.0.1";
+    console.log("🔍 New Document Page Version:", VERSION);
+
     document.querySelector(".template-btn").addEventListener("click", async () => {
       const title = document.getElementById("doc-title").value.trim();
       const template = "blank";
@@ -75,7 +79,8 @@
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'no-cache',
+            'X-Version': VERSION
           },
           body: JSON.stringify({ title, template }),
         });

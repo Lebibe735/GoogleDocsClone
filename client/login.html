@@ -46,12 +46,12 @@
       if (response.ok) {
         alert("Login successful!");
         if(result.token) {
-          localStorage.setItem("token", result.token); // Ruaj tokenin
+          localStorage.setItem("token", result.token); // Save token
         }
         if(result.user) {
-          localStorage.setItem("user", JSON.stringify(result.user)); // Ruaj userin
+          localStorage.setItem("user", JSON.stringify(result.user)); // Save user
         }
-        window.location.href = "/"; // ridrejto në homepage
+        window.location.href = "/"; // Redirect to homepage
       } else {
         alert(result.error || "Login failed.");
       }

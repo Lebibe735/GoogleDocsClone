@@ -62,9 +62,15 @@
     document.querySelector(".template-btn").addEventListener("click", async () => {
       const title = document.getElementById("doc-title").value.trim();
       const template = "blank";
+      const token = localStorage.getItem('token');
 
       if (!title) {
         alert("Please enter a title.");
+        return;
+      }
+      if (!token) {
+        alert("You must be logged in to create a document.");
+        window.location.href = "/login.html";
         return;
       }
 
@@ -78,7 +84,7 @@
           method: "POST",
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${token}`,
             'Cache-Control': 'no-cache',
             'X-Version': VERSION
           },

@@ -26,17 +26,40 @@ const Document = require("./models/Documents");
 // Routes & Middleware
 const authRoutes = require("./routes/auth");
 const docRoutes = require("./routes/docRoutes");
-const authController = require("./controllers/authController");
 const authenticateUser = require("./middleware/auth");
 
 // Setup express & server
 const app = express();
 const server = http.createServer(app);
+
+// Configure CORS properly
+const corsOptions = {
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:3001", 
+    "https://*.vercel.app",
+    "https://*.onrender.com",
+    "https://*.railway.app",
+    "https://*.fly.dev"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+};
+app.use(cors(corsOptions));
+
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001", 
+      "https://*.vercel.app",
+      "https://*.onrender.com",
+      "https://*.railway.app",
+      "https://*.fly.dev"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
 });
 
 // Multer file upload config
@@ -48,8 +71,6 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 // Routes
-const router = express.Router();
-router.post("/login", authController.login);
 app.use("/api/auth", authRoutes);
 app.use("/api/documents", docRoutes);
 

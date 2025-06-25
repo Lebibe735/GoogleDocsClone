@@ -1,33 +1,17 @@
-FROM node:20
+FROM node:20-alpine
 
 WORKDIR /app
 
-<<<<<<< HEAD
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci --only=production
 
 # Copy server files
 COPY . .
 
 # Expose port 3001
-=======
-# Kopjo vetëm paketat
-COPY server/package*.json ./
-
-# Instalo varësitë
-RUN npm install
-
-# Kopjo backend-in
-COPY server/ .
-
-# Kopjo client-in brenda në /app/client
-COPY client/ ./client
-
-# Aplikacioni dëgjon në portin 3001
->>>>>>> 1428007ddb5566f7042aff630db0e3b92663e312
 EXPOSE 3001
 
 CMD ["node", "server.js"]
